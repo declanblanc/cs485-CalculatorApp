@@ -1,34 +1,15 @@
 import { useState } from 'react';
 import './App.css';
+import { calculate } from './calculate.js';
 
 const OPERATORS = ['+', '-', '×', '÷'];
-
-function calculateLocally(expression) {
-  try {
-    let expr = expression
-      .replace(/×/g, '*')
-      .replace(/÷/g, '/')
-      .replace(/(-?\d*\.?\d+)%/g, '($1/100)')
-      .trim()
-      .replace(/[+\-*/.]+$/, '')
-      .trim();
-    if (!expr) return 'Error';
-    if (!/^[\d+\-*/().% ]+$/.test(expr)) return 'Error';
-    // eslint-disable-next-line no-new-func
-    const result = Function('"use strict"; return (' + expr + ')')();
-    if (!isFinite(result)) return 'Error';
-    return parseFloat(result.toPrecision(10)).toString();
-  } catch {
-    return 'Error';
-  }
-}
 
 export default function App() {
   const [expression, setExpression] = useState('');
   const [display, setDisplay] = useState('0');
   const [justEvaluated, setJustEvaluated] = useState(false);
 
-  const handleButton = async (btn) => {
+  const handleButton = (btn) => {
     // --- Clear ---
     if (btn === 'AC') {
       setExpression('');
@@ -58,27 +39,13 @@ export default function App() {
       return;
     }
 
-    // --- = : call backend ---
+    // --- = : evaluate expression ---
     if (btn === '=') {
       if (!expression) return;
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      try {
-        const res = await fetch(`${apiUrl}/calculate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ expression }),
-        });
-        const data = await res.json();
-        setDisplay(data.result);
-        setExpression(data.result === 'Error' ? '' : data.result);
-        setJustEvaluated(true);
-      } catch {
-        // Backend unreachable — calculate client-side as fallback
-        const result = calculateLocally(expression);
-        setDisplay(result);
-        setExpression(result === 'Error' ? '' : result);
-        setJustEvaluated(true);
-      }
+      const result = calculate(expression);
+      setDisplay(result);
+      setExpression(result === 'Error' ? '' : result);
+      setJustEvaluated(true);
       return;
     }
 

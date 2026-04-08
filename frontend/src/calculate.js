@@ -1,16 +1,9 @@
-const express = require('express');
-const cors = require('cors');
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
 /**
  * calculate(expression)
  * Takes an expression string (e.g. "3 + 5 × 2 ÷ 4")
  * and returns the result as a string.
  */
-function calculate(expression) {
+export function calculate(expression) {
   try {
     // Replace display symbols with JS operators
     let expr = expression
@@ -40,15 +33,3 @@ function calculate(expression) {
     return 'Error';
   }
 }
-
-app.post('/calculate', (req, res) => {
-  const { expression } = req.body;
-  if (typeof expression !== 'string') {
-    return res.status(400).json({ error: 'expression must be a string' });
-  }
-  const result = calculate(expression);
-  res.json({ result });
-});
-
-const PORT = 3001;
-app.listen(PORT, () => console.log(`Calculator backend running on http://localhost:${PORT}`));

@@ -1,22 +1,14 @@
 /**
  * test_calculator.js
- * Hammers the backend calculate() endpoint with random expressions
+ * Hammers the calculate() function with random expressions
  * until 1000 consecutive correct answers are achieved.
  *
  * Run: node test_calculator.js
  */
 
-const URL = 'http://localhost:3001/calculate';
+import { calculate } from './frontend/src/calculate.js';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-
-function post(expression) {
-  return fetch(URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ expression }),
-  }).then(r => r.json());
-}
 
 // Generate a random integer in [min, max]
 function randInt(min, max) {
@@ -59,7 +51,7 @@ function makeTest() {
     expr += operators[i] + fmt(operands[i + 1]);
   }
 
-  // Compute expected value locally (same logic as backend)
+  // Compute expected value locally (same logic as calculate)
   let jsExpr = expr.replace(/×/g, '*').replace(/÷/g, '/');
   // eslint-disable-next-line no-new-func
   const expected = round(Function('"use strict"; return (' + jsExpr + ')')());
@@ -77,7 +69,7 @@ const FIXED = [
   { expression: '100÷3',         expected: round(100/3) },
   { expression: '0+0',           expected: 0        },
   { expression: '-5+3',          expected: -2       },
-  { expression: '2+3×4',         expected: 14       },  // left-to-right: backend uses JS precedence
+  { expression: '2+3×4',         expected: 14       },  // left-to-right: uses JS precedence
   { expression: '9-3-2',         expected: 4        },
   { expression: '100÷10÷2',      expected: 5        },
   { expression: '7×8+2',         expected: 58       },
@@ -94,7 +86,7 @@ const FIXED = [
 
 // ── main loop ─────────────────────────────────────────────────────────────────
 
-async function run() {
+function run() {
   let streak   = 0;
   let total    = 0;
   let failures = 0;
@@ -103,17 +95,17 @@ async function run() {
 
   // Fixed cases first
   for (const tc of FIXED) {
-    const data = await post(tc.expression);
-    const got  = round(parseFloat(data.result));
-    const pass = got === tc.expected || data.result === tc.expected.toString();
+    const result = calculate(tc.expression);
+    const got  = round(parseFloat(result));
+    const pass = got === tc.expected || result === tc.expected.toString();
     total++;
     if (pass) {
       streak++;
-      console.log(`  ✓ [${total}] "${tc.expression}" → ${data.result}`);
+      console.log(`  ✓ [${total}] "${tc.expression}" → ${result}`);
     } else {
       streak = 0;
       failures++;
-      console.error(`  ✗ [${total}] "${tc.expression}" expected ${tc.expected} got ${data.result}`);
+      console.error(`  ✗ [${total}] "${tc.expression}" expected ${tc.expected} got ${result}`);
     }
   }
 
@@ -122,21 +114,21 @@ async function run() {
   // Random rounds until streak hits 1000
   while (streak < 1000) {
     const tc   = makeTest();
-    const data = await post(tc.expression);
-    const got  = round(parseFloat(data.result));
+    const result = calculate(tc.expression);
+    const got  = round(parseFloat(result));
     const pass = got === tc.expected;
     total++;
 
     if (pass) {
       streak++;
       if (streak % 100 === 0) {
-        console.log(`  ✓ streak ${streak}/1000  [test #${total}]  "${tc.expression}" → ${data.result}`);
+        console.log(`  ✓ streak ${streak}/1000  [test #${total}]  "${tc.expression}" → ${result}`);
       }
     } else {
       const prev = streak;
       streak = 0;
       failures++;
-      console.error(`  ✗ streak RESET (was ${prev}) [test #${total}] "${tc.expression}" expected ${tc.expected} got ${data.result}`);
+      console.error(`  ✗ streak RESET (was ${prev}) [test #${total}] "${tc.expression}" expected ${tc.expected} got ${result}`);
     }
   }
 
@@ -147,4 +139,4 @@ async function run() {
   console.log(`${'═'.repeat(55)}\n`);
 }
 
-run().catch(err => { console.error('Fatal:', err); process.exit(1); });
+try { run(); } catch (err) { console.error('Fatal:', err); process.exit(1); }
